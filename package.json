@@ -1,0 +1,33 @@
+{
+  "name": "react-native-p2p-rtmp-player",
+  "title": "React Native P2p Rtmp Player",
+  "version": "1.0.0",
+  "description": "TODO",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zack-Bee/react-native-p2p-rtmp-player.git",
+    "baseUrl": "https://github.com/Zack-Bee/react-native-p2p-rtmp-player"
+  },
+  "keywords": [
+    "react-native"
+  ],
+  "author": {
+    "name": "fangxianli",
+    "email": "zackbee.geek@gmail.com"
+  },
+  "license": "GPL",
+  "licenseFilename": "LICENSE",
+  "readmeFilename": "README.md",
+  "peerDependencies": {
+    "react": "^16.8.1",
+    "react-native": ">=0.60.0-rc.0 <1.0.x"
+  },
+  "devDependencies": {
+    "react": "^16.9.0",
+    "react-native": "^0.61.5"
+  }
+}
