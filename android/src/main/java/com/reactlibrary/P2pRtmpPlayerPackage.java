@@ -1,5 +1,7 @@
 package com.reactlibrary;
 
+import android.util.Log;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +20,6 @@ public class P2pRtmpPlayerPackage implements ReactPackage {
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Collections.emptyList();
+        return Arrays.<ViewManager>asList(new PlayerViewManager(reactContext));
     }
 }
