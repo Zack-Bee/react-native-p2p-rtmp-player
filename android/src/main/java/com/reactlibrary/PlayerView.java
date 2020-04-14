@@ -3,6 +3,7 @@ package com.reactlibrary;
 import com.reactlibrary.rtmp.SimpleRtmpClient;
 import com.reactlibrary.player.FlvPlayer;
 import com.reactlibrary.d2d.D2DServer;
+import com.reactlibrary.util.PipedInputStreamPrinter;
 
 import android.content.Context;
 import android.view.Gravity;
@@ -77,15 +78,19 @@ public class PlayerView extends FrameLayout implements TextureView.SurfaceTextur
         int port = map.getInt("port");
         String appName = map.getString("appName");
         String streamName = map.getString("streamName");
+        boolean isBroadcast = map.getBoolean("isBroadcast");
         inputStream = new PipedInputStream(256 * 1024);
         outputStream = new PipedOutputStream();
+
+        // PipedInputStreamPrinter printer = new PipedInputStreamPrinter(inputStream);
         try {
             inputStream.connect(outputStream);
-            mClient = new SimpleRtmpClient(host, port, appName, streamName, true);
+            mClient = new SimpleRtmpClient(host, port, appName, streamName, isBroadcast);
             mClient.setOutputStream(outputStream);
             player.setInputStream(inputStream);
             mClient.start();
             player.play();
+            // printer.start();
         } catch (IOException e) {
             e.printStackTrace();
         }

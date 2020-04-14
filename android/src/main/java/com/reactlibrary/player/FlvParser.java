@@ -22,6 +22,7 @@ public class FlvParser {
 
 	public void setInputStream(PipedInputStream inputStream) {
 		this.inputStream = inputStream;
+		tag.data.order(ByteOrder.BIG_ENDIAN);
 	}
 
 	public void open(String path) throws IOException {
@@ -86,12 +87,20 @@ public class FlvParser {
 		int tagType = buf.array()[0] & 0xff;
 		int dataSize = buf.getInt(0) & 0xffffff;
 		int timestamp = buf.getInt(3) & 0xffffff;
+		int leftSize;
 
 		Log.d(TAG, "tag type: " + tagType + " sz:" + dataSize + " t:" + timestamp);
 
 		sz = inputStream.read(buf.array(), 0, dataSize);
-		if (sz != dataSize) {
+		leftSize = dataSize - sz;
+		while (leftSize > 0) {
+			leftSize -= inputStream.read(buf.array(), dataSize - leftSize, leftSize);
+		}
+		if (leftSize != 0) {
 			Log.w(TAG, "read tag data failed.");
+			Log.w(TAG, "timestamp: " + timestamp);
+			Log.w(TAG, "dataSize: " + dataSize);
+			Log.w(TAG, "readSize: " + sz);
 			return null;
 		}
 		buf.limit(dataSize);

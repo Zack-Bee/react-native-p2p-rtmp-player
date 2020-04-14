@@ -42,9 +42,17 @@ public class SimpleRtmpClient {
                     isRunning = true;
                     byte[] buffer = new byte[256 * 1024];
                     DatagramSocket socket = new DatagramSocket();
+                    boolean passedHeader = false;
                     while (isRunning) {
                         int dataLength = mClient.readAvData(buffer);
-                        System.out.println("*** get av data ***");
+
+                        // 跳过flv文件头部
+                        if (!passedHeader && dataLength != 0) {
+                            passedHeader = true;
+                            byte[] prevTagSize = new byte[]{0x66, 0x66, 0x66, 0x66};
+                            outputStream.write(prevTagSize);
+                            continue;
+                        }
                         if (dataLength > 0) {
                             outputStream.write(buffer, 0, dataLength);
 
