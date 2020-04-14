@@ -2,16 +2,16 @@ import {
     requireNativeComponent,
     UIManager,
     findNodeHandle
-} from 'react-native';
-import { Component, createRef } from 'react'
+} from 'react-native'
+import React, { Component, createRef } from 'react'
 
 const RCTPlayer = requireNativeComponent('RCTPlayer')
 
 class Player extends Component {
     constructor(props) {
         super(props)
+        this.RCTPlayerRef = createRef()
     }
-    RCTPlayerRef = createRef()
 
     render() {
         return (
@@ -44,4 +44,4 @@ class Player extends Component {
     }
 }
 
-export default Player;
+export default Player
