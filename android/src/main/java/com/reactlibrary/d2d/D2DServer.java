@@ -5,6 +5,7 @@ import java.io.PipedOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import com.reactlibrary.util.Byte2Hex;
 
 public class D2DServer {
     private PipedOutputStream outputStream;

@@ -20,6 +20,8 @@ public class FlvParser {
 
 	private PipedInputStream inputStream;
 
+	private byte[] prevSizeBuffer = new byte[4];
+
 	public void setInputStream(PipedInputStream inputStream) {
 		this.inputStream = inputStream;
 		tag.data.order(ByteOrder.BIG_ENDIAN);
@@ -68,6 +70,15 @@ public class FlvParser {
 		tag = null;
 	}
 
+	public int readSizeOfData(byte[] buf, int offset, int size) throws IOException {
+		int leftSize = size;
+		while (leftSize > 0) {
+			int readSize = inputStream.read(buf, size - leftSize + offset, leftSize);
+			leftSize -= readSize;
+		}
+		return leftSize;
+	}
+
 	/**
 	 * !! function overrides previous FlvTag object (avoid reallocate).
 	 */
@@ -76,34 +87,31 @@ public class FlvParser {
 
 		buf.position(0);
 		buf.limit(buf.capacity());
-		int sz = inputStream.read(buf.array(), 0, 4);
-		if (sz < 4)
-			return null;
 
-		sz = inputStream.read(buf.array(), 0, 11);
-		if (sz < 11)
-			return null;
+		int sz = readSizeOfData(buf.array(), 0, 11);
+		if (sz < 0) {
+			throw new IOException();
+		}
 
 		int tagType = buf.array()[0] & 0xff;
 		int dataSize = buf.getInt(0) & 0xffffff;
 		int timestamp = buf.getInt(3) & 0xffffff;
-		int leftSize;
 
 		Log.d(TAG, "tag type: " + tagType + " sz:" + dataSize + " t:" + timestamp);
 
-		sz = inputStream.read(buf.array(), 0, dataSize);
-		leftSize = dataSize - sz;
-		while (leftSize > 0) {
-			leftSize -= inputStream.read(buf.array(), dataSize - leftSize, leftSize);
-		}
-		if (leftSize != 0) {
+		sz = readSizeOfData(buf.array(), 0, dataSize);
+
+		if (sz != 0) {
 			Log.w(TAG, "read tag data failed.");
 			Log.w(TAG, "timestamp: " + timestamp);
 			Log.w(TAG, "dataSize: " + dataSize);
-			Log.w(TAG, "readSize: " + sz);
+			Log.w(TAG, "leftSize: " + sz);
 			return null;
 		}
 		buf.limit(dataSize);
+
+		// read prev tag size
+		sz = readSizeOfData(prevSizeBuffer, 0, 4);
 
 		tag.tagType = tagType;
 		tag.timestamp = timestamp;

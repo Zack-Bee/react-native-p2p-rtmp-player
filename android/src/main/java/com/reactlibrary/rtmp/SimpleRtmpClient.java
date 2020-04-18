@@ -49,8 +49,6 @@ public class SimpleRtmpClient {
                         // 跳过flv文件头部
                         if (!passedHeader && dataLength != 0) {
                             passedHeader = true;
-                            byte[] prevTagSize = new byte[]{0x66, 0x66, 0x66, 0x66};
-                            outputStream.write(prevTagSize);
                             continue;
                         }
                         if (dataLength > 0) {
