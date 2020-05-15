@@ -1,11 +1,13 @@
 import {
     requireNativeComponent,
     UIManager,
-    findNodeHandle
+    findNodeHandle,
+    NativeModules
 } from 'react-native'
 import React, { Component, createRef } from 'react'
 
 const RCTPlayer = requireNativeComponent('RCTPlayer')
+const P2pRtmpPlayerModule = NativeModules.P2pRtmpPlayerModule;
 
 class Player extends Component {
     constructor(props) {
@@ -43,5 +45,7 @@ class Player extends Component {
         )
     }
 }
+
+export const getP2pMac = P2pRtmpPlayerModule.getP2pMac;
 
 export default Player
