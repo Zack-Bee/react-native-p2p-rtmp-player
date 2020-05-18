@@ -5,11 +5,17 @@ import com.reactlibrary.rtmp.util.L;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PipedOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 import java.net.InetAddress;
+import java.net.Socket;
+import java.net.ServerSocket;
 
 public class SimpleRtmpClient {
     private String host;
@@ -19,6 +25,9 @@ public class SimpleRtmpClient {
     private boolean isBroadcast = true;
     private boolean isRunning = false;
     private PipedOutputStream outputStream;
+    private List<Socket> clients = new ArrayList<Socket>();
+    private ServerSocket server;
+    private SyncRtmpClient mClient;
 
     public SimpleRtmpClient(String host, int port, String appName, String streamName, boolean isBroadcast) {
         this.host = host;
@@ -33,15 +42,15 @@ public class SimpleRtmpClient {
     }
 
     public void start() {
+        isRunning = true;
         new Thread() {
             @Override
             public void run() {
-                SyncRtmpClient mClient = new SyncRtmpClient(host, port, appName, streamName);
                 try {
+                    mClient = new SyncRtmpClient(host, port, appName, streamName);
                     mClient.connect();
-                    isRunning = true;
                     byte[] buffer = new byte[256 * 1024];
-                    DatagramSocket socket = new DatagramSocket();
+                    // DatagramSocket socket = new DatagramSocket();
                     boolean passedHeader = false;
                     while (isRunning) {
                         int dataLength = mClient.readAvData(buffer);
@@ -54,10 +63,8 @@ public class SimpleRtmpClient {
                         if (dataLength > 0) {
                             outputStream.write(buffer, 0, dataLength);
 
-                            // 这个地方由于udp包65535的限制很容易丢包，在发送端减小视频帧大小
                             if (isBroadcast) {
-                                DatagramPacket packet = new DatagramPacket(buffer, dataLength, InetAddress.getByName("192.168.49.255"), 6666);
-                                socket.send(packet);
+                                pollingSend(buffer, 0, dataLength);
                             }
                         } else if (dataLength < 0) {
                             break;
@@ -65,14 +72,60 @@ public class SimpleRtmpClient {
                     }
 
                     outputStream.close();
-                    if (isBroadcast) {
-                        socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    server = new ServerSocket(5460);
+                    Socket client = null;
+                    while (isRunning) {
+                        client = server.accept();
+                        System.out.println("client connect");
+                        byte[] hello = new byte[4];
+                        OutputStream os = client.getOutputStream();
+                        InputStream is = client.getInputStream();
+                        is.read(hello);
+                        os.write(mClient.getVideoHeadSequence(), 0, mClient.getVideoHeadSequenceSize());
+                        os.write(mClient.getAudioHeadSequence(), 0, mClient.getAudioHeadSequenceSize());
+                        os.flush();
+                        System.out.println("getVideoHeadSequenceSize: "+ mClient.getVideoHeadSequenceSize());
+                        clients.add(client);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }.start();
+
+    }
+
+    private void pollingSend(byte[] buffer, int offset, int length) {
+        List<Integer> closedClientIndexList = new ArrayList<>();
+        try {
+            for (int i = 0; i < clients.size(); i++) {
+                Socket client = clients.get(i);
+                if (client.isClosed()) {
+                    System.out.println("client.isClosed");
+                    closedClientIndexList.add(i);
+                    continue;
+                }
+                OutputStream os = client.getOutputStream();
+                os.write(buffer, offset, length);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 清除List中已关闭的socket
+        for (int i = closedClientIndexList.size() - 1; i > 0; i--) {
+            clients.remove(closedClientIndexList.get(i));
+        }
     }
 
     public void stop() {

@@ -51,6 +51,28 @@ public class SyncRtmpClient {
     private RtmpDecoder mRtmpDecoder;
     private State mState = State.IDLE;
     private static final byte[] RESERVED = new byte[]{0, 0, 0, 0};
+    public byte[] videoHeadSequence = new byte[256 * 1024];
+    public int videoHeadSequenceSize;
+    private boolean hasSetHeadSequence = false;
+    private byte[] audioHeadSequence = new byte[256 * 1024];
+    private int audioHeadSequenceSize;
+    private boolean hasSetAudioSequence = false;
+
+    public byte[] getVideoHeadSequence() {
+        return videoHeadSequence;
+    }
+
+    public int getVideoHeadSequenceSize() {
+        return videoHeadSequenceSize;
+    }
+
+    public byte[] getAudioHeadSequence() {
+        return audioHeadSequence;
+    }
+
+    public int getAudioHeadSequenceSize() {
+        return audioHeadSequenceSize;
+    }
 
     private enum State {
         IDLE,
@@ -111,6 +133,7 @@ public class SyncRtmpClient {
     public int readAvData(byte buf[]) throws IOException {
         int n = 0;
         RtmpPacket rtmpPacket = recvRtmpPkt();
+
         switch (rtmpPacket.getHeader().getMessageType()) {
             case DATA_AMF0: {
                 System.out.println("\n\n");
@@ -119,7 +142,7 @@ public class SyncRtmpClient {
                 Data metadata = (Data) rtmpPacket;
                 if ("onMetaData".equals(metadata.getType())) {
                     //make a flv header
-                    //flv + version + flag(0x05 == audio + video) + header size (int 0x09) + prevtagsize(int 0)
+                    //flv + version + flag(0x05 == audio + audio) + header size (int 0x09) + prevtagsize(int 0)
                     byte[] flvheader = new byte[]{0x46, 0x4C, 0x56, 0x01, 0x05, 0x0, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00};
                     System.arraycopy(flvheader, 0, buf, 0, flvheader.length);
                     n += flvheader.length;
@@ -217,6 +240,16 @@ public class SyncRtmpClient {
                 n += tag.length;
                 Log.d(TAG, " audio/video packet size " + n);
                 System.out.println("\n\n");
+                if (!hasSetHeadSequence && rtmpPacket.getHeader().getMessageType() == MessageType.VIDEO) {
+                    System.arraycopy(buf, 0, videoHeadSequence, 0, n);
+                    videoHeadSequenceSize = n;
+                    hasSetHeadSequence = true;
+                }
+                if (!hasSetAudioSequence && rtmpPacket.getHeader().getMessageType() == MessageType.AUDIO) {
+                    System.arraycopy(buf, 0, audioHeadSequence, 0, n);
+                    audioHeadSequenceSize = n;
+                    hasSetAudioSequence = true;
+                }
                 break;
             default:
                 n = 0;
